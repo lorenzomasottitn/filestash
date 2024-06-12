@@ -408,30 +408,30 @@ func (this S3Backend) Mv(from string, to string) error {
 					_, err := client.PutObject(&s3.PutObjectInput{
 						Bucket: aws.String(spath[1].bucket),
 						Key:    aws.String(spath[1].path),
-					})
-					continue
+					})					
+				} else {
+					input := &s3.CopyObjectInput{
+						CopySource: aws.String(fmt.Sprintf("%s/%s", spath[0].bucket, spath[0].path)),
+						Bucket:     aws.String(spath[1].bucket),
+						Key:        aws.String(spath[1].path),
+					}
+					if this.params["encryption_key"] != "" {
+						input.CopySourceSSECustomerAlgorithm = aws.String("AES256")
+						input.CopySourceSSECustomerKey = aws.String(this.params["encryption_key"])
+						input.SSECustomerAlgorithm = aws.String("AES256")
+						input.SSECustomerKey = aws.String(this.params["encryption_key"])
+					}
+					_, err := client.CopyObject(input)				
+					if err != nil {
+						cancel()
+						errChan <- err
+						continue
+					}
+					_, err = client.DeleteObject(&s3.DeleteObjectInput{
+						Bucket: aws.String(spath[0].bucket),
+						Key:    aws.String(spath[0].path),
+					})					
 				}
-				input := &s3.CopyObjectInput{
-					CopySource: aws.String(fmt.Sprintf("%s/%s", spath[0].bucket, spath[0].path)),
-					Bucket:     aws.String(spath[1].bucket),
-					Key:        aws.String(spath[1].path),
-				}
-				if this.params["encryption_key"] != "" {
-					input.CopySourceSSECustomerAlgorithm = aws.String("AES256")
-					input.CopySourceSSECustomerKey = aws.String(this.params["encryption_key"])
-					input.SSECustomerAlgorithm = aws.String("AES256")
-					input.SSECustomerKey = aws.String(this.params["encryption_key"])
-				}
-				_, err := client.CopyObject(input)
-				if err != nil {
-					cancel()
-					errChan <- err
-					continue
-				}
-				_, err = client.DeleteObject(&s3.DeleteObjectInput{
-					Bucket: aws.String(spath[0].bucket),
-					Key:    aws.String(spath[0].path),
-				})
 				if err != nil {
 					cancel()
 					errChan <- err
