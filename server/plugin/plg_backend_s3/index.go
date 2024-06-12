@@ -404,9 +404,6 @@ func (this S3Backend) Mv(from string, to string) error {
 				if ctx.Err() != nil {
 					continue
 				}
-				if strings.HasSuffix(spath[1].path, "/") == true { 
-					continue
-				}
 				input := &s3.CopyObjectInput{
 					CopySource: aws.String(fmt.Sprintf("%s/%s", spath[0].bucket, spath[0].path)),
 					Bucket:     aws.String(spath[1].bucket),
@@ -447,20 +444,11 @@ func (this S3Backend) Mv(from string, to string) error {
 			if ctx.Err() != nil {
 				return false
 			}
-			var objects []*s3.Object
 			for _, object := range objs.Contents {
-			    objects = append(objects, object)
-			}
-			sort.Slice(objects, func(i, j int) bool {
-			    lenI := len(strings.TrimPrefix(*objects[i].Key, f.path))
-			    lenJ := len(strings.TrimPrefix(*objects[j].Key, f.path))
-			    return lenI < lenJ
-			})
-			for _, object := range objects {
-			    jobChan <- []S3Path{
-			        {f.bucket, *object.Key},
-			        {t.bucket, t.path + strings.TrimPrefix(*object.Key, f.path)},
-			    }
+				jobChan <- []S3Path{
+					{f.bucket, *object.Key},
+					{t.bucket, t.path + strings.TrimPrefix(*object.Key, f.path)},
+				}
 			}
 			return aws.BoolValue(objs.IsTruncated)
 		},
