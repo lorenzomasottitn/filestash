@@ -347,6 +347,13 @@ func (this S3Backend) Rm(path string) error {
 		})
 		return err
 	}
+	if strings.HasSuffix(path, "/") == true {
+		_, err := client.DeleteObject(&s3.DeleteObjectInput{
+			Bucket: aws.String(p.bucket),
+			Key:    aws.String(p.path),
+		})
+		return err
+	}
 	return err
 }
 
